@@ -1,5 +1,5 @@
 -- Pull in the wezterm API
-local wezterm = require("wezterm")
+local wezterm = require("wezterm") ---@type Wezterm
 local config = wezterm.config_builder()
 
 -- Initial geometry for new windows
@@ -15,25 +15,89 @@ config.font_size = 14.0
 
 config.hide_tab_bar_if_only_one_tab = true
 config.window_decorations = "RESIZE"
+config.use_fancy_tab_bar = true
+
+config.window_padding = {
+	left = 0,
+	right = 0,
+	top = 10,
+	bottom = 7.5,
+}
+
+local launch_menu = {}
+
+if wezterm.target_triple == "x86_64-pc-windows-msvc" then
+	config.default_prog = { "pwsh.exe", "-NoLogo" }
+
+	table.insert(launch_menu, {
+		label = "PowerShell",
+		args = { "pwsh.exe", "-NoLogo" },
+	})
+
+	table.insert(launch_menu, {
+		label = "Bash Login",
+		args = { "bash", "-l" },
+	})
+
+	-- Find installed visual studio version(s) and add their compilation
+	-- environment command prompts to the menu
+	for _, vsvers in ipairs(wezterm.glob("Microsoft Visual Studio/20*", "C:/Program Files (x86)")) do
+		local year = vsvers:gsub("Microsoft Visual Studio/", "")
+		table.insert(launch_menu, {
+			label = "x64 Native Tools VS " .. year,
+			args = {
+				"cmd.exe",
+				"/k",
+				"C:/Program Files (x86)/" .. vsvers .. "/BuildTools/VC/Auxiliary/Build/vcvars64.bat",
+			},
+		})
+	end
+end
+
+config.launch_menu = launch_menu
 
 config.front_end = "WebGpu"
 
-config.keys = {
-	--Toggle Fullscreen window_decorations
+-- config.colors = {
+-- 	foreground = "#00FF00",
+-- 	cursor_bg = "#00FF00",
+-- 	cursor_fg = "#000000",
+-- }
+
+config.cursor_blink_ease_in = "EaseOut"
+config.cursor_blink_ease_out = "EaseOut"
+config.default_cursor_style = "BlinkingBlock"
+config.cursor_blink_rate = 750
+
+config.window_frame = {
+	active_titlebar_bg = "#090909",
+	-- font = fonts.font,
+	-- font_size = fonts.font_size,
+}
+
+config.background = {
 	{
-		key = "f",
-		mods = "CMD|CTRL",
-		action = wezterm.action.ToggleFullScreen,
+		source = {
+			File = {
+				path = wezterm.config_dir .. "/backdrops/door.png",
+			},
+		},
+
+		hsb = { brightness = 0.05 },
+		opacity = 1,
 	},
+}
+
+config.keys = {
 	-- 1. Splitting Panes (CMD + d for vertical, CMD + SHIFT + d for horizontal)
 	{
 		key = "d",
-		mods = "CMD",
+		mods = "SUPER",
 		action = wezterm.action.SplitHorizontal({ domain = "CurrentPaneDomain" }),
 	},
 	{
 		key = "d",
-		mods = "CMD|SHIFT",
+		mods = "SUPER|SHIFT",
 		action = wezterm.action.SplitVertical({ domain = "CurrentPaneDomain" }),
 	},
 
@@ -60,6 +124,8 @@ config.keys = {
 	{ key = "t", mods = "CMD", action = wezterm.action.SpawnTab("CurrentPaneDomain") },
 	{ key = "[", mods = "CMD", action = wezterm.action.ActivateTabRelative(-1) },
 	{ key = "]", mods = "CMD", action = wezterm.action.ActivateTabRelative(1) },
+
+	{ key = "l", mods = "ALT", action = wezterm.action.ShowLauncher },
 }
 
 return config
